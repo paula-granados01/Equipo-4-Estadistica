@@ -1,0 +1,191 @@
+#--------------------------------------------------------------------------------
+
+# Script:     Análisis Multivariado (Logit)
+# Autor:      Equipo 4
+# Fecha:      22 de noviembre del 2023
+
+#--------------------------------------------------------------------------
+
+#1. Cargar base de datos original
+
+# URL del archivo
+View(Base_de_datos_Equipo_4)
+
+library(foreign)                 
+library(dplyr) 
+library(stats) 
+
+install.packages("dplyr")
+
+#2. Vamos a convertir las variables al formato que corresponde
+
+Base_de_datos_Equipo_4$sexo=as.factor(Base_de_datos_Equipo_4$sexo)
+Base_de_datos_Equipo_4$edad=as.numeric(Base_de_datos_Equipo_4$edad)
+Base_de_datos_Equipo_4$nivel_esc=as.factor(Base_de_datos_Equipo_4$nivel_esc)
+Base_de_datos_Equipo_4$lenguaje=as.numeric(Base_de_datos_Equipo_4$lenguaje)
+Base_de_datos_Equipo_4$palabras_n=as.numeric(Base_de_datos_Equipo_4$palabras_n)
+Base_de_datos_Equipo_4$contactos_n=as.numeric(Base_de_datos_Equipo_4$contactos_n)
+Base_de_datos_Equipo_4$experiencia=as.factor(Base_de_datos_Equipo_4$experiencia)
+Base_de_datos_Equipo_4$sostenimiento=as.factor(Base_de_datos_Equipo_4$sostenimiento)
+Base_de_datos_Equipo_4$p1=as.numeric(Base_de_datos_Equipo_4$p1)
+
+str(Base_de_datos_Equipo_4)
+
+# Nota: Si sale "Warning message" ignóralos; la base está lista para ser utilizada
+
+#3. Filtra las variables con las que decidas trabajar
+v_seleccionadas=c("sexo", "edad", "nivel_esc", "lenguaje",
+                  "palabras_n","contactos_n","sostenimiento","experiencia", "p1")
+base_modelo=Base_de_datos_Equipo_4[,v_seleccionadas]
+
+#4. Convertir la variable "p1 (Atractivo)" en una variable dicotómica dependiente
+base_modelo$p1 <- ifelse(base_modelo$p1 > 3, 1, 0)
+
+#5. Cargar base de datos
+
+View(base_modelo)
+
+#6. Pregunta de Investigación
+#¿Cuales son los factores que influyen en la presentación de los postulantes para que estos mismos sean más atractivos?
+
+# VARIABLES
+# Atractivo = Qué tan atractivo es el perfil
+#         0 = No es atractivo
+#         1 = Es atractivo
+# Sexo = Sexo del sujeto postulante
+#         1 = Hombre
+#         2 = Mujer
+# Edad = Cuál es la edad del postulante
+#         (Variable numérica continua)
+# Nivel de escolaridad = Cuál es el grado máximo de estudios
+#         1 = Postgrado  
+#         2 = Licenciatura
+# Lenguaje = Idiomas que domina
+#         0 = Español 
+#         1 = Inglés
+# Número de Palabras = Número de palabras que usó en su presentación
+#         (Variable numérica continua)
+# Contactos = Número de Contactos
+#         (Variable numérica continua)
+# Sostenimiento = Tipo de Sostenimiento
+#         0 = Privado
+#         1 = Público
+# Experiencia: Ha tenido experiencia previa trabajando
+#         0 = Con Experiencia
+#         1 = Sin Experiencia
+
+#7. Etiquetar variables (metodologia)
+
+base_modelo$p1<-factor(base_modelo$p1, levels = c(0,1), labels = c("No","Sí"))
+base_modelo$sexo<-factor(base_modelo$sexo, levels = c(1,2), labels = c("Hombre","Mujer"))
+base_modelo$edad<-as.numeric(base_modelo$edad)
+base_modelo$nivel_esc<-factor(base_modelo$nivel_esc, levels = c(1,2), labels = c("Postgrado","Licenciatura"))
+base_modelo$lenguaje<-factor(base_modelo$lenguaje, levels = c(0,1), labels = c("Español","Inglés"))
+base_modelo$palabras_n<-as.numeric(base_modelo$palabras_n)
+base_modelo$contactos_n<-as.numeric(base_modelo$contactos_n)
+base_modelo$sostenimiento<-factor(base_modelo$sostenimiento, levels = c(0,1), labels = c("Privado","Público"))
+base_modelo$experiencia<-factor(base_modelo$experiencia, levels = c(0,1), labels = c("Sin experiencia","Con experiencia"))
+
+
+#8. Seleccionar variables
+
+trabajadores<-base_modelo[c("sexo", "edad", "nivel_esc", "lenguaje",
+                            "palabras_n","contactos_n","sostenimiento","experiencia", "p1")]
+rm("base_modelo")
+
+View(trabajadores)
+
+
+#8.1 Variable dependiente
+
+table(trabajadores$p1)
+
+#8.2 Covariables
+
+table(trabajadores$sexo)
+table(trabajadores$edad)
+table(trabajadores$nivel_esc)
+table(trabajadores$lenguaje)
+table(trabajadores$palabras_n)
+table(trabajadores$contactos_n)
+table(trabajadores$sostenimiento)
+table(trabajadores$experiencia)
+
+
+#9. Ajuste del modelo
+
+regresion <- glm(p1 ~sexo + edad + nivel_esc + lenguaje + palabras_n + contactos_n + sostenimiento + experiencia, 
+                 data = trabajadores, family = "binomial")
+
+summary(regresion)
+
+
+#10. Interpretacion
+
+# Instalar magrittr si aún no está instalado
+if (!requireNamespace("magrittr", quietly = TRUE)) {
+  install.packages("magrittr")
+}
+
+# Cargar el paquete magrittr
+library(magrittr)
+
+momios<-exp(coefficients(regresion))%>%round(digits = 4)%>%data.frame()
+momios
+
+
+#--------------------------------------------------------------------------------
+
+# Script:     Primera Prueba de Hipótesis (Z para diferencia de 2 proporciones)
+# Autor:      Equipo 4
+# Fecha:      22 de noviembre del 2023
+
+#--------------------------------------------------------------------------   
+
+#Prueba Z para diferencia de 2 proporciones (1 cola)
+
+#PLANTEA TUS HIPÓTESIS: Deben relacionar la proporción de tus dos muestras diferentes ("p1" y "p2") 
+
+#Ho: La proporción de postulantes con experiencia, cuyas presentaciones resultaron ser atractivas, es IGUAL
+#a la proporción de postulantes sin experiencia, cuyas presentaciones resultaron ser atractivas
+#Ha: La proporción de postulantes con experiencia, cuyas presentaciones resultaron ser atractivas, es MAYOR
+#a la proporción de postulantes sin experiencia, cuyas presentaciones resultaron ser atractivas
+
+#IDENTIFICA LOS SIGUIENTES VALORES
+# X1: 1404 (Número de elementos que componen a la 1era Muestra)
+# X2: 2329 (Número de elementos que componen a la 2da Muestra)
+# n1: 604 (Número de elementos de X1 que presentan las características de interés; que son atractivos)
+# n2: 822 (Número de elementos de X2 que presentan las características de interés; que son atractivos)
+
+#INTRODUCE TUS VECTORES DE DATOS
+A<-c(1404,2329)
+B<-c(604,822)
+
+#COMANDO PARA LA PRUEBA Z PARA DIFERENCIAR 2 PROPORCIONES
+prop.test(B,A, alternative = "greater")
+
+
+#--------------------------------------------------------------------------------
+
+# Script:     Segunda Prueba de Hipótesis (T de Student)
+# Autor:      Equipo 4
+# Fecha:      22 de noviembre del 2023
+
+#--------------------------------------------------------------------------
+
+#T de Student (de 1 cola)
+
+# PLANTEAMIENTO DE HIPÓTESIS: Deben relacionar la media poblacional (mu) con el valor poblacional que te plantea el problema (n)
+
+# Ho: El promedio de la edad que reportan los perfiles en Linkedin que son atractivos es igual a 24.
+# Ha: El promedio de la edad que reportan los perfiles en Linkedin que son atractivos es mayor a 24.
+
+# INTRODUCE TU BASE DE DATOS (VECTOR DE DATOS = X)
+
+data <- read_excel("C:\\Users\\geger\\Downloads\\Base de datos_Equipo 4 (1).xlsx", sheet = "T Stu Edad")$edad
+
+# Alternativa para leer la base de datos
+data <- data.frame(Base_de_datos_Equipo_4$edad)
+
+# COMANDO PARA LA T DE STUDENT
+t.test(data, mu=24, alternative = "greater")
